@@ -12,7 +12,7 @@ const app = express();
 connectDB();
 
 app.use(express.json());
-app.use("/uploads", express.static(path.join(__dirname, "public")));
+app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 app.use("/api/auth", authRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/users", userRoutes);
