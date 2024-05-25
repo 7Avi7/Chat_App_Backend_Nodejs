@@ -1,5 +1,5 @@
 const chatService = require("../services/chatService");
-
+const Message = require("../models/messageModel");
 // Handle sending a message
 const sendMessage = async (req, res) => {
   const { receiverId, message } = req.body;
@@ -10,6 +10,12 @@ const sendMessage = async (req, res) => {
     attachments = req.files
       .filter((file) => file.mimetype.startsWith("image/"))
       .map((file) => file.path);
+  }
+
+  if (!receiverId || !message) {
+    return res
+      .status(400)
+      .json({ error: "Receiver and message are required." });
   }
 
   try {
@@ -29,10 +35,21 @@ const sendMessage = async (req, res) => {
 // Handle fetching messages between users
 const getMessages = async (req, res) => {
   try {
-    const userId2 = req.user.id; // Assuming userId2 is obtained from authenticated user
+    const { userId1, userId2 } = req.query;
 
-    // Fetch messages where userId2 is the receiver
-    const messages = await Message.find({ receiver: userId2 })
+    if (!userId1 || !userId2) {
+      return res.status(400).json({
+        error: "Both userId1 and userId2 are required query parameters.",
+      });
+    }
+
+    // Fetch messages where userId1 and userId2 are involved
+    const messages = await Message.find({
+      $or: [
+        { sender: userId1, receiver: userId2 },
+        { sender: userId2, receiver: userId1 },
+      ],
+    })
       .populate("sender receiver")
       .sort({ createdAt: 1 });
 
@@ -43,7 +60,22 @@ const getMessages = async (req, res) => {
   }
 };
 
+// Controller function to fetch a single message by ID
+// Handle fetching a single message by ID
+const getSingleMessage = async (req, res) => {
+  const messageId = req.params.id;
+
+  try {
+    const message = await chatService.getSingleMessage(messageId);
+    res.json(message);
+  } catch (err) {
+    console.error("Error fetching message:", err);
+    res.status(500).json({ error: "Error fetching message" });
+  }
+};
+
 module.exports = {
   sendMessage,
   getMessages,
+  getSingleMessage,
 };
